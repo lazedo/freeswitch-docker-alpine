@@ -11,6 +11,7 @@ WORKDIR /home/freeswitch
 RUN    abuild-keygen -a -i \
     && git clone https://github.com/lazedo/freeswitch-docker-alpine.git \
     && cd freeswitch-docker-alpine \
+    && abuild checksum \
     && abuild -r
 
 from alpine as freeswitch
