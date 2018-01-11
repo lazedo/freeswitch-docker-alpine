@@ -62,7 +62,7 @@ pkgusers="$FREESWITCH_USER"
 pkggroups="$FREESWITCH_GROUP"
 subpackages="$pkgname-dbg $pkgname-dev $pkgname-flite $pkgname-timezones::noarch
 	$pkgname-sample-config:conf:noarch $pkgname-freetdm $pkgname-sangoma
-	$pkgname-snmp $pkgname-pgsql $pkgname-perl $pkgname-perlesl $pkgname-phpesl"
+	$pkgname-snmp $pkgname-pgsql $pkgname-perl"
 
 source="$pkgname-$pkgver.tar.xz
 	0001-FS-10774-switch_pgsql-Fix-build-for-PostgreSQL-libpq.patch
@@ -85,7 +85,7 @@ prepare() {
 build() {
 	cd "$builddir"
 
-        sed 's/php5/php7/g' -i libs/esl/php/Makefile.am
+#        sed 's/php5/php7/g' -i libs/esl/php/Makefile.am
  
         ./bootstrap.sh
         
@@ -110,7 +110,7 @@ build() {
 
 #        sed 's/php5/php7/g' -i libs/esl/php/Makefile.in 
 #        sed 's/php5/php7/g' -i libs/esl/php/Makefile.am 
-        make -C libs/esl reswig
+#        make -C libs/esl reswig
 
 	# build freetdm with -lexecinfo
 	make -C libs/freetdm LIBS="-lexecinfo"
@@ -121,9 +121,9 @@ build() {
 	make -j1 all
 
 	# build perlesl module
-	cd "$builddir"/libs/esl
-	make -j1 perlmod
-        make -j1 phpmod
+#	cd "$builddir"/libs/esl
+#	make -j1 perlmod
+#       make -j1 phpmod
 
 }
 package(){
@@ -137,9 +137,9 @@ package(){
 	chown -R $FREESWITCH_USER:$FREESWITCH_GROUP "$pkgdir"/var/*/freeswitch
 
 	# install perlesl module
-	cd "$builddir"/libs/esl
-	make -j1 DESTDIR="$pkgdir" perlmod-install
-        make -j1 DESTDIR="$pkgdir" phpmod-install
+#	cd "$builddir"/libs/esl
+#	make -j1 DESTDIR="$pkgdir" perlmod-install
+#        make -j1 DESTDIR="$pkgdir" phpmod-install
         
         cp /usr/bin/epmd "$pkgdir"/usr/bin
 }
