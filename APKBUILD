@@ -49,6 +49,7 @@ makedepends="
 	xmlrpc-c-dev
 	yasm
 	zlib-dev
+        tiff-dev
         php7-dev
         erlang-dev
         ffmpeg-dev
