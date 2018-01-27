@@ -68,6 +68,8 @@ source="$pkgname-$pkgver.tar.xz
 	0001-FS-10774-switch_pgsql-Fix-build-for-PostgreSQL-libpq.patch
 	0001-sofia-sip-byte-order.patch
 	0001-mod_spandsp-max-tones.patch
+	0001-switch-console-crash.patch
+	0002-sofia-glue-gateway-crash.patch
 	0002-FS-verto-bswap_64.patch
 	001-rtmp-libressl.patch
 	getlib.patch
