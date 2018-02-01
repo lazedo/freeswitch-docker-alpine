@@ -69,6 +69,7 @@ source="$pkgname-$pkgver.tar.xz
 	0001-sofia-sip-byte-order.patch
 	0001-mod_spandsp-max-tones.patch
 	0001-switch-console-crash.patch
+	0001-switch-core-media.patch
 	0002-sofia-glue-gateway-crash.patch
 	0002-FS-verto-bswap_64.patch
 	001-rtmp-libressl.patch
