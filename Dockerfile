@@ -21,4 +21,4 @@ RUN echo -e "/apks\n$(cat /etc/apk/repositories)" > /etc/apk/repositories \
            bash curl wget iproute2 \
            freeswitch=1.9.0-r0 freeswitch-flite=1.9.0-r0
 
-ENTRYPOINT ["freeswitch", "-nonat"]
+CMD ["freeswitch", "-nonat"]
