@@ -2,7 +2,7 @@
 # Contributor: Michael Mason <ms13sp@gmail.com>
 # Contributor: Cameron Banta <cbanta@gmail.com>
 pkgname=kazoo-freeswitch
-pkgver=4.3.0
+pkgver=${RELEASE:-4.3.0}
 pkgrel=0
 pkgdesc="A communications platform written in C from the ground up"
 url="http://www.freeswitch.org"
@@ -75,6 +75,7 @@ source="$pkgname-$pkgver.tar.gz::https://${TOKEN}@github.com/lazedo/freeswitch/a
 	001-srtp-libressl.patch
 	001-ssl-libressl.patch
 	001-rtmp-libressl.patch
+	0001-add-asssembler-to-configure-ac.patch
 	getlib.patch
 	modules.conf
 	kazoo-freeswitch.confd
@@ -255,6 +256,7 @@ sha512sums="f4dc0a4d4657748b20afd0f671160a9ac3a4a9cac1d2bdb1f025ec7122d089758c80
 d596c529cfa7626374143f350f7357340c5086e014f9b4f895023a6feca472157fe8e5c0ef2f501933d2a7c1b656f20b3a68e14d1f815430128f925736914f82  001-srtp-libressl.patch
 1f1db8be11bedf50a5cb1ac3e36dc13fc10b11f43aa444b1c9ee72d1e7591db0228dbd65d5f33a70f71c52c0332e3e3867888dcde0f3098439d3fab29bc2997a  001-ssl-libressl.patch
 f043341ce03a16f0c39631b66666b210283c08f462cb03db327d10de38c285985ef5f8505ccad941946b030100ad80c8595d0d216975a5029a31dc68f9dee9d3  001-rtmp-libressl.patch
+50362d069174aeeaf7d8cc993d32c319f110e6776c1c94b4fd6f3f255bd82e9155f9cbca93cacd7c8fee4107d7a9c40327466b2ada49272e3064cd0345b53ab3  0001-add-asssembler-to-configure-ac.patch
 4ceb48f64d2bc26a02cc0846276506241bfd30c156422b0a1d608fd172c099feb5c121a763652e9a45046dcdd0ba0eb71eab240e0c6ce2ad63ff781719e135a4  getlib.patch
 81afddd92c100d266d5ad1ff8b919a3a91fcca714b9d10a466b98bdcffd359d8c21c5a1c81df70811f44018216743af554b22f5e327a5743c046c7b79fb65767  modules.conf
 a585f6411185a26206137a1ad97a06fd6c73e80c5439e9be45eabfa70e7a83120169ba882971fcd328436c8e0242cbd664170b80754ea2846021689baf1f1595  kazoo-freeswitch.confd

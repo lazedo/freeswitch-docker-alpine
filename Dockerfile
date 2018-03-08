@@ -1,6 +1,10 @@
 FROM alpine as build
 ARG TOKEN
+ARG RELEASE
+
 ENV TOKEN=${TOKEN:-invalid}
+ENV RELEASE=${RELEASE:-4.3.0}
+
 RUN    apk update \
     && apk add alpine-sdk vim swig \
     && ln `which swig` `which swig`3.0 \
