@@ -1,8 +1,8 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 # Contributor: Michael Mason <ms13sp@gmail.com>
 # Contributor: Cameron Banta <cbanta@gmail.com>
-pkgname=freeswitch
-pkgver=1.9.0
+pkgname=kazoo-freeswitch
+pkgver=4.3.0
 pkgrel=0
 pkgdesc="A communications platform written in C from the ground up"
 url="http://www.freeswitch.org"
@@ -64,10 +64,8 @@ subpackages="$pkgname-dbg $pkgname-dev $pkgname-flite $pkgname-timezones::noarch
 	$pkgname-sample-config:conf:noarch $pkgname-freetdm $pkgname-sangoma
 	$pkgname-snmp $pkgname-pgsql $pkgname-perl"
 
-source="$pkgname-$pkgver.tar.xz
-	0001-FS-10774-switch_pgsql-Fix-build-for-PostgreSQL-libpq.patch
+source="$pkgname-$pkgver.tar.gz::https://${TOKEN}@github.com/lazedo/freeswitch/archive/kazoo-$pkgver.tar.gz
 	0001-sofia-sip-byte-order.patch
-	0001-mod_spandsp-max-tones.patch
 	0001-switch-console-crash.patch
 	0001-switch-core-media.patch
 	0001-mod-loopback-attxfer.patch
@@ -79,11 +77,11 @@ source="$pkgname-$pkgver.tar.xz
 	001-rtmp-libressl.patch
 	getlib.patch
 	modules.conf
-	freeswitch.confd
-	freeswitch.initd
+	kazoo-freeswitch.confd
+	kazoo-freeswitch.initd
 	"
 
-builddir="$srcdir/$pkgname-$pkgver"
+builddir="$srcdir/freeswitch-kazoo-$pkgver"
 
 prepare() {
 	default_prepare
@@ -234,7 +232,7 @@ phpesl() {
 }     
 
 conf() {
-	pkgdesc="Freeswitch sample configureation"
+	pkgdesc="Freeswitch sample configuration"
 	depends="freeswitch-timezones"
 	install=
 	mkdir -p "$subpkgdir"/etc/freeswitch
@@ -246,10 +244,8 @@ conf() {
 	mkdir -p "$pkgdir"/etc/freeswitch/scripts
 }
 
-sha512sums="a20cf0ea3ca6fc10ff99f1d39d01f8fcfbfbdcb8df33f8e83a893d5dd45f4b07883bdbf82418ed1922bb2edbcdedd1bd1a5b926c41da30e54033f7de65c4cf86  freeswitch-1.9.0.tar.xz
-db61d9a253105f7a1ef5f5c218b367a833f62a2e85e364e3971acc79f68037b0270c5b2f3e0909643278b6b93104ac8e59b323470aeef5f519c33b0289c0fcf3  0001-FS-10774-switch_pgsql-Fix-build-for-PostgreSQL-libpq.patch
+sha512sums="f4dc0a4d4657748b20afd0f671160a9ac3a4a9cac1d2bdb1f025ec7122d089758c80d203e41b7902fa21a4643b01237c2af1a983e2b25f6df4706510d762ac76  kazoo-freeswitch-4.3.0.tar.gz
 8a7ca31cc80524b02edc83af891a32af64dd7834ac14b1389112f2ce7fe06fe602d24509a299898f25e807dd0b88544aecb990bf4bd37ee1c7023ae58dacd28a  0001-sofia-sip-byte-order.patch
-2a81bb2ba0a76b1e5b622d7b95827ad47cb318d111ea136e8fd245c2f6a86949d220a96bc33dbe7539b04e73c68ec512b88c6ee5d561094f77d0902980210408  0001-mod_spandsp-max-tones.patch
 89dd3a6b01290d7d71af4b32ba1cc2003e3a73fb2df1f7153a15d0a57e9d0fa316b017f7cc979980b39306da8b34e0dc494f8a392ba4b4194280a7a3d9230f8c  0001-switch-console-crash.patch
 876d6746024658b13bc514e16878395f3fc8336dc846c2d74218f195593b3caab6697aceb74af72d2e41facaef7afaa336ff2597b0124b4d596507b1d5b5d33c  0001-switch-core-media.patch
 2e8b449d3011455299058659773d96d8dd0fd05fbab7d57136404c6a46e62989b71c01b2aaec16a33d4a365a1c77eafb5ffc0b9c1c56043f1aced95cefeeaa07  0001-mod-loopback-attxfer.patch
@@ -261,5 +257,5 @@ d596c529cfa7626374143f350f7357340c5086e014f9b4f895023a6feca472157fe8e5c0ef2f5019
 f043341ce03a16f0c39631b66666b210283c08f462cb03db327d10de38c285985ef5f8505ccad941946b030100ad80c8595d0d216975a5029a31dc68f9dee9d3  001-rtmp-libressl.patch
 4ceb48f64d2bc26a02cc0846276506241bfd30c156422b0a1d608fd172c099feb5c121a763652e9a45046dcdd0ba0eb71eab240e0c6ce2ad63ff781719e135a4  getlib.patch
 81afddd92c100d266d5ad1ff8b919a3a91fcca714b9d10a466b98bdcffd359d8c21c5a1c81df70811f44018216743af554b22f5e327a5743c046c7b79fb65767  modules.conf
-a585f6411185a26206137a1ad97a06fd6c73e80c5439e9be45eabfa70e7a83120169ba882971fcd328436c8e0242cbd664170b80754ea2846021689baf1f1595  freeswitch.confd
-643d0a2e43f5d3bf3b99fcb6f6422302cb4b74a95eccf844eafb100b15aa9856b4ff41f112d6637255c2e9e2bec9fedc9a9215dfff214dfb83b52eae16b71dca  freeswitch.initd"
+a585f6411185a26206137a1ad97a06fd6c73e80c5439e9be45eabfa70e7a83120169ba882971fcd328436c8e0242cbd664170b80754ea2846021689baf1f1595  kazoo-freeswitch.confd
+643d0a2e43f5d3bf3b99fcb6f6422302cb4b74a95eccf844eafb100b15aa9856b4ff41f112d6637255c2e9e2bec9fedc9a9215dfff214dfb83b52eae16b71dca  kazoo-freeswitch.initd"

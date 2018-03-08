@@ -1,11 +1,16 @@
 FROM alpine as build
+ARG TOKEN
+ENV TOKEN=${TOKEN:-invalid}
 RUN    apk update \
     && apk add alpine-sdk vim swig \
     && ln `which swig` `which swig`3.0 \
     && mkdir -p /var/cache/distfiles \
     && chmod a+w /var/cache/distfiles \
     && adduser -D freeswitch \
-    && addgroup freeswitch abuild
+    && addgroup freeswitch abuild \
+    && echo "freeswitch ALL=(root) NOPASSWD:ALL" > /etc/sudoers.d/freeswitch \
+    && chmod 400 /etc/sudoers.d/freeswitch
+
 USER freeswitch
 WORKDIR /home/freeswitch
 RUN    abuild-keygen -a -i \
@@ -19,6 +24,6 @@ COPY --from=build /home/freeswitch/packages/freeswitch/x86_64/* /apks/x86_64/
 RUN echo -e "/apks\n$(cat /etc/apk/repositories)" > /etc/apk/repositories \
     && apk add --update --allow-untrusted \
            bash curl wget iproute2 \
-           freeswitch=1.9.0-r0 freeswitch-flite=1.9.0-r0
+           kazoo-freeswitch kazoo-freeswitch-flite
 
 CMD ["freeswitch", "-nonat"]
