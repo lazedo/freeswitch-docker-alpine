@@ -2,7 +2,7 @@
 # Contributor: Michael Mason <ms13sp@gmail.com>
 # Contributor: Cameron Banta <cbanta@gmail.com>
 pkgname=kazoo-freeswitch
-pkgver=${RELEASE:-4.3.0}
+pkgver=${RELEASE:-0.9.1}
 pkgrel=0
 pkgdesc="A communications platform written in C from the ground up"
 url="http://www.freeswitch.org"
@@ -76,7 +76,6 @@ source="$pkgname-$pkgver.tar.gz::https://${TOKEN}@github.com/lazedo/freeswitch/a
 	001-ssl-libressl.patch
 	001-rtmp-libressl.patch
 	0001-add-asssembler-to-configure-ac.patch
-	0002-acl-port.patch
 	getlib.patch
 	modules.conf
 	kazoo-freeswitch.confd
