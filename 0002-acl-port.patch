@@ -1,0 +1,469 @@
+diff --git a/src/include/switch_core.h b/src/include/switch_core.h
+index a07ea36..7d4988f 100644
+--- a/src/include/switch_core.h
++++ b/src/include/switch_core.h
+@@ -2420,6 +2420,7 @@
+ SWITCH_DECLARE(switch_status_t) switch_strftime_tz(const char *tz, const char *format, char *date, size_t len, switch_time_t thetime);
+ SWITCH_DECLARE(switch_status_t) switch_time_exp_tz_name(const char *tz, switch_time_exp_t *tm, switch_time_t thetime);
+ SWITCH_DECLARE(void) switch_load_network_lists(switch_bool_t reload);
++SWITCH_DECLARE(switch_bool_t) switch_check_network_list_ip_port_token(const char *ip_str, int port, const char *list_name, const char **token);
+ SWITCH_DECLARE(switch_bool_t) switch_check_network_list_ip_token(const char *ip_str, const char *list_name, const char **token);
+ #define switch_check_network_list_ip(_ip_str, _list_name) switch_check_network_list_ip_token(_ip_str, _list_name, NULL)
+ SWITCH_DECLARE(void) switch_time_set_monotonic(switch_bool_t enable);
+diff --git a/src/include/switch_utils.h b/src/include/switch_utils.h
+index 5a57525..cbaa0ea 100644
+--- a/src/include/switch_utils.h
++++ b/src/include/switch_utils.h
+@@ -46,6 +46,16 @@
+ 
+ #define SWITCH_URL_UNSAFE "\r\n #%&+:;<=>?@[\\]^`{|}\""
+ 
++#define MAX_NETWORK_PORTS 10
++
++struct switch_network_port_range {
++	int port;
++	int ports[MAX_NETWORK_PORTS];
++	int min_port;
++	int max_port;
++};
++typedef struct switch_network_port_range switch_network_port_range_t;
++typedef switch_network_port_range_t* switch_network_port_range_p;
+ 
+ static inline char *switch_get_hex_bytes(switch_byte_t *buf, switch_size_t datalen, char *new_buf, switch_size_t new_datalen)
+ {
+@@ -1214,6 +1224,12 @@
+ 
+ SWITCH_DECLARE(char *) switch_network_ipv4_mapped_ipv6_addr(const char* ip_str);
+ SWITCH_DECLARE(switch_status_t) switch_network_list_add_host_mask(switch_network_list_t *list, const char *host, const char *mask_str, switch_bool_t ok);
++
++SWITCH_DECLARE(switch_status_t) switch_network_list_add_cidr_port_token(switch_network_list_t *list, const char *cidr_str, switch_bool_t ok, const char *token, switch_network_port_range_p port);
++SWITCH_DECLARE(switch_status_t) switch_network_list_add_host_port_mask(switch_network_list_t *list, const char *host, const char *mask_str, switch_bool_t ok, switch_network_port_range_p port);
++
++SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip_port_token(switch_network_list_t *list, uint32_t ip, int port, const char **token);
++SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip6_port_token(switch_network_list_t *list, ip_t ip, int port, const char **token);
+ SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip_token(switch_network_list_t *list, uint32_t ip, const char **token);
+ SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip6_token(switch_network_list_t *list, ip_t ip, const char **token);
+ #define switch_network_list_validate_ip(_list, _ip) switch_network_list_validate_ip_token(_list, _ip, NULL);
+diff --git a/src/mod/endpoints/mod_sofia/mod_sofia.c b/src/mod/endpoints/mod_sofia/mod_sofia.c
+index 439aed2..d4e7736 100644
+--- a/src/mod/endpoints/mod_sofia/mod_sofia.c
++++ b/src/mod/endpoints/mod_sofia/mod_sofia.c
+@@ -502,6 +502,7 @@
+ 			switch_log_printf(SWITCH_CHANNEL_SESSION_LOG(session), SWITCH_LOG_DEBUG, "Sending BYE to %s\n", switch_channel_get_name(channel));
+ 			if (!sofia_test_flag(tech_pvt, TFLAG_BYE)) {
+ 				nua_bye(tech_pvt->nh,
++				        TAG_IF(tech_pvt->record_route, NUTAG_PROXY(tech_pvt->record_route)),
+ 						SIPTAG_CONTACT(SIP_NONE),
+ 						TAG_IF(!zstr(reason), SIPTAG_REASON_STR(reason)),
+ 						TAG_IF(call_info, SIPTAG_CALL_INFO_STR(call_info)),
+diff --git a/src/mod/endpoints/mod_sofia/mod_sofia.h b/src/mod/endpoints/mod_sofia/mod_sofia.h
+index ae66357..42d4f36 100644
+--- a/src/mod/endpoints/mod_sofia/mod_sofia.h
++++ b/src/mod/endpoints/mod_sofia/mod_sofia.h
+@@ -311,6 +311,8 @@
+ 	PFLAG_UPDATE_REFRESHER,
+ 	PFLAG_KEEP_AUTH_CALLER_ID,
+ 	PFLAG_AUTH_REQUIRE_USER,
++	PFLAG_AUTH_CALLS_ACL_ONLY,
++	PFLAG_USE_PORT_FOR_ACL_CHECK,
+ 
+ 	/* No new flags below this line */
+ 	PFLAG_MAX
+@@ -786,6 +788,8 @@
+ 	int bind_attempt_interval;
+ 	char *proxy_notify_events;
+ 	char *proxy_info_content_types;
++	char *acl_inbound_x_token_header;
++	char *acl_proxy_x_token_header;
+ };
+ 
+ 
+diff --git a/src/mod/endpoints/mod_sofia/sofia.c b/src/mod/endpoints/mod_sofia/sofia.c
+index a6a5fb4..d0875be 100644
+--- a/src/mod/endpoints/mod_sofia/sofia.c
++++ b/src/mod/endpoints/mod_sofia/sofia.c
+@@ -4594,6 +4594,7 @@
+ 					sofia_clear_pflag(profile, PFLAG_BLIND_AUTH_ENFORCE_RESULT);
+ 					sofia_clear_pflag(profile, PFLAG_KEEP_AUTH_CALLER_ID);
+ 					sofia_clear_pflag(profile, PFLAG_AUTH_REQUIRE_USER);
++					sofia_clear_pflag(profile, PFLAG_AUTH_CALLS_ACL_ONLY);
+ 					profile->shutdown_type = "false";
+ 					profile->local_network = "localnet.auto";
+ 					sofia_set_flag(profile, TFLAG_ENABLE_SOA);
+@@ -5916,6 +5917,22 @@
+ 						}  else {
+ 							sofia_clear_pflag(profile, PFLAG_KEEP_AUTH_CALLER_ID);
+ 						}
++					} else if (!strcasecmp(var, "auth-calls-acl-only")) {
++						if(switch_true(val)) {
++							sofia_set_pflag(profile, PFLAG_AUTH_CALLS_ACL_ONLY);
++						}  else {
++							sofia_clear_pflag(profile, PFLAG_AUTH_CALLS_ACL_ONLY);
++						}
++					} else if (!strcasecmp(var, "use-port-for-acl-check")) {
++						if(switch_true(val)) {
++							sofia_set_pflag(profile, PFLAG_USE_PORT_FOR_ACL_CHECK);
++						}  else {
++							sofia_clear_pflag(profile, PFLAG_USE_PORT_FOR_ACL_CHECK);
++						}
++					} else if (!strcasecmp(var, "apply-inbound-acl-x-token")) {
++						profile->acl_inbound_x_token_header = switch_core_strdup(profile->pool, val);
++					} else if (!strcasecmp(var, "apply-proxy-acl-x-token")) {
++						profile->acl_proxy_x_token_header = switch_core_strdup(profile->pool, val);
+ 					} else if (!strcasecmp(var, "proxy-hold")) {
+ 						if(switch_true(val)) {
+ 							sofia_set_pflag(profile, PFLAG_PROXY_HOLD);
+@@ -10197,13 +10214,22 @@
+ 		int ok = 1;
+ 		char *last_acl = NULL;
+ 		const char *token = NULL;
++		int acl_port = sofia_test_pflag(profile, PFLAG_USE_PORT_FOR_ACL_CHECK) ? network_port : 0;
+ 
+ 		for (x = 0; x < profile->acl_count; x++) {
+ 			last_acl = profile->acl[x];
+-			if ((ok = switch_check_network_list_ip_token(network_ip, last_acl, &token))) {
++			switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "verifying acl \"%s\" for ip/port %s:%i.\n",
++							  switch_str_nil(last_acl), network_ip, acl_port);
++			if ((ok = switch_check_network_list_ip_port_token(network_ip, acl_port, last_acl, &token))) {
+ 
+ 				if (profile->acl_pass_context[x]) {
+ 					acl_context = profile->acl_pass_context[x];
++				}
++				if(!token && profile->acl_inbound_x_token_header) {
++					const char * x_auth_token = get_unknown_header(sip, profile->acl_inbound_x_token_header);
++					if (!zstr(x_auth_token)) {
++						token = x_auth_token;
++					}
+ 				}
+ 
+ 				break;
+@@ -10237,7 +10263,7 @@
+ 			for (x = 0; x < profile->proxy_acl_count; x++) {
+ 				last_acl = profile->proxy_acl[x];
+ 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "checking %s against acl %s\n", network_ip, last_acl);
+-				if (switch_check_network_list_ip_token(network_ip, last_acl, &token)) {
++				if (switch_check_network_list_ip_port_token(network_ip, network_port, last_acl, &token)) {
+ 					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_INFO, "%s is a proxy according to the %s acl\n", network_ip, last_acl);
+ 					network_ip_is_proxy = 1;
+ 					break;
+@@ -10249,26 +10275,36 @@
+ 			 */
+ 			if (network_ip_is_proxy) {
+ 				const char * x_auth_ip = get_unknown_header(sip, "X-AUTH-IP");
+-				const char * x_auth_token = get_unknown_header(sip, "X-AUTH-Token");
++				const char * x_auth_port = get_unknown_header(sip, "X-AUTH-PORT");
++				int x_auth_port_i = ((!sofia_test_pflag(profile, PFLAG_USE_PORT_FOR_ACL_CHECK)) || zstr(x_auth_port)) ? 0 : atoi(x_auth_port);
+ 				switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "network ip is a proxy\n");
+ 
+-				if (!zstr(x_auth_token) && !zstr(x_auth_ip)) {
+-					switch_copy_string(proxied_client_ip, x_auth_ip, sizeof(proxied_client_ip));
+-					token = x_auth_token;
+-					ok = 1;
+-				} else if (!zstr(x_auth_ip)) {
++				if (!zstr(x_auth_ip)) {
+ 					for (x = 0; x < profile->acl_count; x++) {
+ 						last_acl = profile->acl[x];
+-						if ((ok = switch_check_network_list_ip_token(x_auth_ip, last_acl, &token))) {
++						switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "verifying acl \"%s\" from proxy for ip/port %s:%i.\n",
++										  switch_str_nil(last_acl), x_auth_ip, x_auth_port_i);
++						if ((ok = switch_check_network_list_ip_port_token(x_auth_ip, x_auth_port_i, last_acl, &token))) {
+ 							switch_copy_string(proxied_client_ip, x_auth_ip, sizeof(proxied_client_ip));
+ 							break;
+ 						}
+ 					}
+ 				}
++
++				if(!token && profile->acl_proxy_x_token_header) {
++					const char * x_auth_token = get_unknown_header(sip, profile->acl_proxy_x_token_header);
++					if (!zstr(x_auth_token)) {
++						switch_copy_string(proxied_client_ip, x_auth_ip, sizeof(proxied_client_ip));
++						token = x_auth_token;
++						if(!ok) {
++							last_acl = profile->acl_proxy_x_token_header;
++						}
++						ok = 1;
++					}
++				}
+ 			}
+ 
+ 			if (!ok) {
+-
+ 				if (!sofia_test_pflag(profile, PFLAG_AUTH_CALLS)) {
+ 					switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_WARNING, "IP %s Rejected by acl \"%s\"\n", network_ip, switch_str_nil(last_acl));
+ 
+@@ -10297,6 +10333,13 @@
+ 		}
+ 	}
+ 
++	if (!is_auth && sofia_test_pflag(profile, PFLAG_AUTH_CALLS_ACL_ONLY)) {
++		switch_log_printf(SWITCH_CHANNEL_LOG, SWITCH_LOG_DEBUG, "IP/Port %s %i Rejected by acls and auth-calls-acl-only flag is set, rejecting call\n",
++						  network_ip, network_port);
++		nua_respond(nh, SIP_403_FORBIDDEN, TAG_END());
++		goto fail;
++	}
++
+ 	if (!is_auth && sofia_test_pflag(profile, PFLAG_AUTH_CALLS) && sofia_test_pflag(profile, PFLAG_BLIND_AUTH)) {
+ 		char *user;
+ 		switch_status_t blind_result = SWITCH_STATUS_FALSE;
+diff --git a/src/switch_core.c b/src/switch_core.c
+index 22b35ed..b50bdf8 100644
+--- a/src/switch_core.c
++++ b/src/switch_core.c
+@@ -1365,7 +1365,7 @@
+ 
+ static switch_ip_list_t IP_LIST = { 0 };
+ 
+-SWITCH_DECLARE(switch_bool_t) switch_check_network_list_ip_token(const char *ip_str, const char *list_name, const char **token)
++SWITCH_DECLARE(switch_bool_t) switch_check_network_list_ip_port_token(const char *ip_str, int port, const char *list_name, const char **token)
+ {
+ 	switch_network_list_t *list;
+ 	ip_t  ip, mask, net;
+@@ -1393,9 +1393,9 @@
+ 
+ 	if ((list = switch_core_hash_find(IP_LIST.hash, list_name))) {
+ 		if (ipv6) {
+-			ok = switch_network_list_validate_ip6_token(list, ip, token);
++			ok = switch_network_list_validate_ip6_port_token(list, ip, port, token);
+ 		} else {
+-			ok = switch_network_list_validate_ip_token(list, ip.v4, token);
++			ok = switch_network_list_validate_ip_port_token(list, ip.v4, port, token);
+ 		}
+ 	} else if (strchr(list_name, '/')) {
+ 		if (strchr(list_name, ',')) {
+@@ -1438,6 +1438,10 @@
+ 	return ok;
+ }
+ 
++SWITCH_DECLARE(switch_bool_t) switch_check_network_list_ip_token(const char *ip_str, const char *list_name, const char **token)
++{
++	return switch_check_network_list_ip_port_token(ip_str, 0, list_name, token);
++}
+ 
+ SWITCH_DECLARE(void) switch_load_network_lists(switch_bool_t reload)
+ {
+@@ -1584,9 +1588,12 @@
+ 
+ 
+ 				for (x_node = switch_xml_child(x_list, "node"); x_node; x_node = x_node->next) {
+-					const char *cidr = NULL, *host = NULL, *mask = NULL, *domain = NULL;
++					const char *cidr = NULL, *host = NULL, *mask = NULL, *domain = NULL, *port = NULL;
+ 					switch_bool_t ok = default_type;
+ 					const char *type = switch_xml_attr(x_node, "type");
++					switch_network_port_range_t port_range;
++					char *argv[MAX_NETWORK_PORTS] = { 0 };
++					int argc = 0, i;
+ 
+ 					if (type) {
+ 						ok = switch_true(type);
+@@ -1596,6 +1603,25 @@
+ 					host = switch_xml_attr(x_node, "host");
+ 					mask = switch_xml_attr(x_node, "mask");
+ 					domain = switch_xml_attr(x_node, "domain");
++
++					memset(&port_range, 0, sizeof(switch_network_port_range_t));
++
++					if( (port = switch_xml_attr(x_node, "port")) != NULL) {
++						port_range.port = atoi(port);
++					}
++
++					if( (port = switch_xml_attr(x_node, "ports")) != NULL) {
++						argc = switch_separate_string((char*)port, ',', argv, (sizeof(argv) / sizeof(argv[0])));
++						for(i=0; i < argc; i++) {
++							port_range.ports[i] = atoi(argv[i]);
++						}
++					}
++					if( (port = switch_xml_attr(x_node, "port-min")) != NULL) {
++						port_range.min_port = atoi(port);
++					}
++					if( (port = switch_xml_attr(x_node, "port-max")) != NULL) {
++						port_range.max_port = atoi(port);
++					}
+ 
+ 					if (domain) {
+ 						switch_event_t *my_params = NULL;
+@@ -1641,7 +1667,7 @@
+ 										if (id && user_cidr) {
+ 											char *token = switch_mprintf("%s@%s", id, domain);
+ 											switch_assert(token);
+-											switch_network_list_add_cidr_token(list, user_cidr, ok, token);
++											switch_network_list_add_cidr_port_token(list, user_cidr, ok, token, &port_range);
+ 											free(token);
+ 										}
+ 									}
+@@ -1651,13 +1677,13 @@
+ 
+ 						switch_xml_free(xml_root);
+ 					} else if (cidr) {
+-						switch_network_list_add_cidr(list, cidr, ok);
++						switch_network_list_add_cidr_port_token(list, cidr, ok, NULL, &port_range);
+ 					} else if (host && mask) {
+-						switch_network_list_add_host_mask(list, host, mask, ok);
++						switch_network_list_add_host_port_mask(list, host, mask, ok, &port_range);
+ 					}
+-
+-					switch_core_hash_insert(IP_LIST.hash, name, list);
+ 				}
++
++				switch_core_hash_insert(IP_LIST.hash, name, list);
+ 			}
+ 		}
+ 
+diff --git a/src/switch_utils.c b/src/switch_utils.c
+index a32a939..3890506 100644
+--- a/src/switch_utils.c
++++ b/src/switch_utils.c
+@@ -54,6 +54,7 @@
+ 	switch_bool_t ok;
+ 	char *token;
+ 	char *str;
++	switch_network_port_range_t port_range;
+ 	struct switch_network_node *next;
+ };
+ typedef struct switch_network_node switch_network_node_t;
+@@ -467,7 +468,8 @@
+ 			else return SWITCH_TRUE;
+ 		}
+ }
+-SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip6_token(switch_network_list_t *list, ip_t ip, const char **token)
++
++SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip6_port_token(switch_network_list_t *list, ip_t ip, int port, const char **token)
+ {
+ 	switch_network_node_t *node;
+ 	switch_bool_t ok = list->default_type;
+@@ -494,7 +496,29 @@
+ 	return ok;
+ }
+ 
+-SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip_token(switch_network_list_t *list, uint32_t ip, const char **token)
++SWITCH_DECLARE(switch_bool_t) is_port_in_node(int port, switch_network_node_t *node)
++{
++	if(port == 0)
++		return SWITCH_TRUE;
++	if(node->port_range.port != 0 && node->port_range.port != port)
++		return SWITCH_FALSE;
++	if(node->port_range.ports[0] != 0) {
++		int i;
++		for(i=0; i < MAX_NETWORK_PORTS && node->port_range.ports[i] != 0; i++) {
++			if(port == node->port_range.ports[i])
++				return SWITCH_TRUE;
++		}
++		return SWITCH_FALSE;
++	}
++	if(node->port_range.min_port != 0 || node->port_range.max_port != 0) {
++		if(port >= node->port_range.min_port && port <= node->port_range.max_port)
++			return SWITCH_TRUE;
++		return SWITCH_FALSE;
++	}
++	return SWITCH_TRUE;
++}
++
++SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip_port_token(switch_network_list_t *list, uint32_t ip, int port, const char **token)
+ {
+ 	switch_network_node_t *node;
+ 	switch_bool_t ok = list->default_type;
+@@ -502,7 +526,7 @@
+ 
+ 	for (node = list->node_head; node; node = node->next) {
+ 		if (node->family == AF_INET6) continue; /* want AF_INET */
+-		if (node->bits >= bits && switch_test_subnet(ip, node->ip.v4, node->mask.v4)) {
++		if (node->bits >= bits && switch_test_subnet(ip, node->ip.v4, node->mask.v4) && is_port_in_node(port, node)) {
+ 			if (node->ok) {
+ 				ok = SWITCH_TRUE;
+ 			} else {
+@@ -520,6 +544,16 @@
+ 	return ok;
+ }
+ 
++SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip6_token(switch_network_list_t *list, ip_t ip, const char **token)
++{
++	return switch_network_list_validate_ip6_port_token(list, ip, 0, token);
++}
++
++SWITCH_DECLARE(switch_bool_t) switch_network_list_validate_ip_token(switch_network_list_t *list, uint32_t ip, const char **token)
++{
++	return switch_network_list_validate_ip_port_token(list, ip, 0, token);
++}
++
+ SWITCH_DECLARE(char *) switch_network_ipv4_mapped_ipv6_addr(const char* ip_str)
+ {
+ 	/* ipv4 mapped ipv6 address */
+@@ -532,7 +566,7 @@
+ }
+ 
+ SWITCH_DECLARE(switch_status_t) switch_network_list_perform_add_cidr_token(switch_network_list_t *list, const char *cidr_str, switch_bool_t ok,
+-																		   const char *token)
++																		   const char *token, switch_network_port_range_p port)
+ {
+ 	ip_t ip, mask;
+ 	uint32_t bits;
+@@ -557,6 +591,10 @@
+ 	node->ok = ok;
+ 	node->bits = bits;
+ 	node->str = switch_core_strdup(list->pool, cidr_str);
++	if(port) {
++		memcpy(&node->port_range, port, sizeof(switch_network_port_range_t));
++	}
++
+ 
+ 	if (strchr(cidr_str,':')) {
+ 		node->family = AF_INET6;
+@@ -578,7 +616,7 @@
+ 	return SWITCH_STATUS_SUCCESS;
+ }
+ 
+-SWITCH_DECLARE(switch_status_t) switch_network_list_add_cidr_token(switch_network_list_t *list, const char *cidr_str, switch_bool_t ok, const char *token)
++SWITCH_DECLARE(switch_status_t) switch_network_list_add_cidr_port_token(switch_network_list_t *list, const char *cidr_str, switch_bool_t ok, const char *token, switch_network_port_range_p port)
+ {
+ 	char *cidr_str_dup = NULL;
+ 	switch_status_t status = SWITCH_STATUS_SUCCESS;
+@@ -592,20 +630,25 @@
+ 		if ((argc = switch_separate_string(cidr_str_dup, ',', argv, (sizeof(argv) / sizeof(argv[0]))))) {
+ 			for (i = 0; i < argc; i++) {
+ 				switch_status_t this_status;
+-				if ((this_status = switch_network_list_perform_add_cidr_token(list, argv[i], ok, token)) != SWITCH_STATUS_SUCCESS) {
++				if ((this_status = switch_network_list_perform_add_cidr_token(list, argv[i], ok, token, port)) != SWITCH_STATUS_SUCCESS) {
+ 					status = this_status;
+ 				}
+ 			}
+ 		}
+ 	} else {
+-		status = switch_network_list_perform_add_cidr_token(list, cidr_str, ok, token);
++		status = switch_network_list_perform_add_cidr_token(list, cidr_str, ok, token, port);
+ 	}
+ 
+ 	switch_safe_free(cidr_str_dup);
+ 	return status;
+ }
+ 
+-SWITCH_DECLARE(switch_status_t) switch_network_list_add_host_mask(switch_network_list_t *list, const char *host, const char *mask_str, switch_bool_t ok)
++SWITCH_DECLARE(switch_status_t) switch_network_list_add_cidr_token(switch_network_list_t *list, const char *cidr_str, switch_bool_t ok, const char *token)
++{
++	return switch_network_list_add_cidr_port_token(list, cidr_str, ok, token, NULL);
++}
++
++SWITCH_DECLARE(switch_status_t) switch_network_list_add_host_port_mask(switch_network_list_t *list, const char *host, const char *mask_str, switch_bool_t ok, switch_network_port_range_p port)
+ {
+ 	ip_t ip, mask;
+ 	switch_network_node_t *node;
+@@ -618,6 +661,9 @@
+ 	node->ip.v4 = ntohl(ip.v4);
+ 	node->mask.v4 = ntohl(mask.v4);
+ 	node->ok = ok;
++	if(port) {
++		memcpy(&node->port_range, port, sizeof(switch_network_port_range_t));
++	}
+ 
+ 	/* http://graphics.stanford.edu/~seander/bithacks.html */
+ 	mask.v4 = mask.v4 - ((mask.v4 >> 1) & 0x55555555);
+@@ -632,6 +678,11 @@
+ 	return SWITCH_STATUS_SUCCESS;
+ }
+ 
++SWITCH_DECLARE(switch_status_t) switch_network_list_add_host_mask(switch_network_list_t *list, const char *host, const char *mask_str, switch_bool_t ok)
++{
++	return switch_network_list_add_host_port_mask(list, host, mask_str, ok, NULL);
++}
++
+ 
+ SWITCH_DECLARE(int) switch_parse_cidr(const char *string, ip_t *ip, ip_t *mask, uint32_t *bitp)
+ {
