@@ -76,6 +76,7 @@ source="$pkgname-$pkgver.tar.gz::https://${TOKEN}@github.com/lazedo/freeswitch/a
 	001-ssl-libressl.patch
 	001-rtmp-libressl.patch
 	0001-add-asssembler-to-configure-ac.patch
+	0002-acl-port.patch
 	getlib.patch
 	modules.conf
 	kazoo-freeswitch.confd
