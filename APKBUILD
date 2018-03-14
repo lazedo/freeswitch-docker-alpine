@@ -2,7 +2,7 @@
 # Contributor: Michael Mason <ms13sp@gmail.com>
 # Contributor: Cameron Banta <cbanta@gmail.com>
 pkgname=kazoo-freeswitch
-pkgver=${RELEASE:-0.9.1}
+pkgver=${RELEASE:-0.9.3}
 pkgrel=0
 pkgdesc="A communications platform written in C from the ground up"
 url="http://www.freeswitch.org"
@@ -65,17 +65,6 @@ subpackages="$pkgname-dbg $pkgname-dev $pkgname-flite $pkgname-timezones::noarch
 	$pkgname-snmp $pkgname-pgsql $pkgname-perl"
 
 source="$pkgname-$pkgver.tar.gz::https://${TOKEN}@github.com/lazedo/freeswitch/archive/kazoo-$pkgver.tar.gz
-	0001-sofia-sip-byte-order.patch
-	0001-switch-console-crash.patch
-	0001-switch-core-media.patch
-	0001-mod-loopback-attxfer.patch
-	001-switch-buffer.patch
-	0002-sofia-glue-gateway-crash.patch
-	0002-FS-verto-bswap_64.patch
-	001-srtp-libressl.patch
-	001-ssl-libressl.patch
-	001-rtmp-libressl.patch
-	0001-add-asssembler-to-configure-ac.patch
 	getlib.patch
 	modules.conf
 	kazoo-freeswitch.confd
