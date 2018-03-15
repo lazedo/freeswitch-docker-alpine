@@ -30,6 +30,7 @@ RUN echo -e "/apks\n$(cat /etc/apk/repositories)" > /etc/apk/repositories \
     && ls -la /apks/x86_64/ \
     && apk add --update --allow-untrusted \
            bash curl wget iproute2 \
+           libressl \
            kazoo-freeswitch kazoo-freeswitch-flite
 
 CMD ["freeswitch", "-nonat"]
