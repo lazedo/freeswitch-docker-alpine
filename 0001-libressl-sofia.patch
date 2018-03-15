@@ -1,0 +1,15 @@
+diff --git a/libs/sofia-sip/libsofia-sip-ua/tport/tport_tls.c b/libs/sofia-sip/libsofia-sip-ua/tport/tport_tls.c
+index f06aaaa..1173338 100644
+--- a/libs/sofia-sip/libsofia-sip-ua/tport/tport_tls.c
++++ b/libs/sofia-sip/libsofia-sip-ua/tport/tport_tls.c
+@@ -516,7 +516,9 @@
+   if (ti->CAfile != NULL) {
+     SSL_CTX_set_client_CA_list(tls->ctx,
+                                SSL_load_client_CA_file(ti->CAfile));
+-#if OPENSSL_VERSION_NUMBER >= 0x10100000
++#ifdef LIBRESSL_VERSION_NUMBER
++    if (SSL_CTX_get_client_CA_list(tls->ctx) == NULL)
++#elif OPENSSL_VERSION_NUMBER >= 0x10100000
+ 	if (SSL_CTX_get_client_CA_list(tls->ctx) == NULL)
+ #else
+ 	if (tls->ctx->client_CA == NULL)
