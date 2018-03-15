@@ -27,7 +27,6 @@ makedepends="
 	libogg-dev
 	libpri-dev
 	libressl-dev
-	openssl-dev
 	libshout-dev
 	libsndfile-dev
 	libvorbis-dev
