@@ -65,6 +65,7 @@ subpackages="$pkgname-dbg $pkgname-dev $pkgname-flite $pkgname-timezones::noarch
 	$pkgname-snmp $pkgname-pgsql $pkgname-perl"
 
 source="$pkgname-$pkgver.tar.gz::https://${TOKEN}@github.com/lazedo/freeswitch/archive/kazoo-$pkgver.tar.gz
+	revert-ssl-random.diff
 	0001-libressl-sofia.patch
 	getlib.patch
 	modules.conf
