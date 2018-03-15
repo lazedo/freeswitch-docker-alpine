@@ -1,0 +1,51 @@
+diff --git a/libs/srtp/crypto/hash/hmac_ossl.c b/libs/srtp/crypto/hash/hmac_ossl.c
+index 24b780e756..f99646b58f 100644
+--- a/libs/srtp/crypto/hash/hmac_ossl.c
++++ b/libs/srtp/crypto/hash/hmac_ossl.c
+@@ -52,12 +52,6 @@
+ #include <openssl/evp.h>
+ #include <openssl/hmac.h>
+ 
+-#ifdef LIBRESSL_VERSION_NUMBER
+-#include <openssl/rand.h>
+-#undef OPENSSL_VERSION_NUMBER
+-#define OPENSSL_VERSION_NUMBER 0x1000107fL
+-#endif
+-
+ #define SHA1_DIGEST_SIZE		20
+ 
+ /* the debug module for authentiation */
+diff --git a/src/include/switch_ssl.h b/src/include/switch_ssl.h
+index 813bbe541a..3f4d6d696e 100644
+--- a/src/include/switch_ssl.h
++++ b/src/include/switch_ssl.h
+@@ -47,12 +47,6 @@
+ #include <openssl/err.h>
+ #include <openssl/bio.h>
+ 
+-#ifdef LIBRESSL_VERSION_NUMBER
+-#include <openssl/rand.h>
+-#undef OPENSSL_VERSION_NUMBER
+-#define OPENSSL_VERSION_NUMBER 0x1000107fL
+-#endif
+-
+ SWITCH_DECLARE(int) switch_core_cert_extract_fingerprint(X509* x509, dtls_fingerprint_t *fp);
+ 
+ #else
+diff --git a/src/mod/endpoints/mod_rtmp/handshake.h b/src/mod/endpoints/mod_rtmp/handshake.h
+index 34035397dd..19c77810b0 100644
+--- a/src/mod/endpoints/mod_rtmp/handshake.h
++++ b/src/mod/endpoints/mod_rtmp/handshake.h
+@@ -35,12 +35,6 @@
+ #include <openssl/hmac.h>
+ #include <openssl/sha.h>
+ 
+-#ifdef LIBRESSL_VERSION_NUMBER
+-#include <openssl/rand.h>
+-#undef OPENSSL_VERSION_NUMBER
+-#define OPENSSL_VERSION_NUMBER 0x1000107fL
+-#endif
+-
+ #if !defined(_MSC_VER) && !defined(__FUNCTION__)
+ #define __FUNCTION__ (const char *)__func__
+ #endif
