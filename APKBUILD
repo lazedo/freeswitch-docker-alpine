@@ -103,7 +103,10 @@ build() {
 		--disable-debug \
 		--enable-core-pgsql-support \
 		--enable-system-lua \
-		--enable-system-xmlrpc-c
+		--enable-system-xmlrpc-c \
+		--with-openssl \
+		--enable-srtp \
+		--enable-zrtp
 
 #        sed 's/php5/php7/g' -i libs/esl/php/Makefile.in 
 #        sed 's/php5/php7/g' -i libs/esl/php/Makefile.am 
