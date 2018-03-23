@@ -3,7 +3,7 @@ ARG TOKEN
 ARG RELEASE
 
 ENV TOKEN=${TOKEN:-invalid}
-ENV RELEASE=${RELEASE:-0.9.1}
+ENV RELEASE=${RELEASE:-0.9.5}
 
 RUN    apk update \
     && apk add alpine-sdk vim swig \
@@ -34,3 +34,4 @@ RUN echo -e "/apks\n$(cat /etc/apk/repositories)" > /etc/apk/repositories \
            kazoo-freeswitch kazoo-freeswitch-flite
 
 CMD ["freeswitch", "-nonat"]
+
