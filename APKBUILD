@@ -1,8 +1,8 @@
 # Maintainer: Natanael Copa <ncopa@alpinelinux.org>
 # Contributor: Michael Mason <ms13sp@gmail.com>
 # Contributor: Cameron Banta <cbanta@gmail.com>
-pkgname=kazoo-freeswitch
-pkgver=${RELEASE:-0.9.5}
+pkgname=2600hz-freeswitch
+pkgver=${RELEASE:-0.9.7}
 pkgrel=0
 pkgdesc="A communications platform written in C from the ground up"
 url="http://www.freeswitch.org"
@@ -62,13 +62,13 @@ pkgusers="$FREESWITCH_USER"
 pkggroups="$FREESWITCH_GROUP"
 subpackages="$pkgname-dbg $pkgname-dev $pkgname-flite $pkgname-timezones::noarch
 	$pkgname-sample-config:conf:noarch $pkgname-freetdm $pkgname-sangoma
-	$pkgname-snmp $pkgname-pgsql $pkgname-perl"
+	$pkgname-snmp $pkgname-pgsql $pkgname-perl $pkgname-kazoo"
 
 source="$pkgname-$pkgver.tar.gz::https://${TOKEN}@github.com/lazedo/freeswitch/archive/kazoo-$pkgver.tar.gz
 	getlib.patch
 	modules.conf
-	kazoo-freeswitch.confd
-	kazoo-freeswitch.initd
+	2600hz-freeswitch.confd
+	2600hz-freeswitch.initd
 	"
 
 builddir="$srcdir/freeswitch-kazoo-$pkgver"
@@ -195,6 +195,14 @@ snmp() {
 	_mv_mod mod_snmp
 }
 
+kazoo() {
+	pkgdesc="Freeswitch Kazoo module"
+	install=
+	_mv_mod mod_kazoo
+	mkdir -p "$subpkgdir"/usr/bin
+	cp /usr/bin/epmd "$subpkgdir"/usr/bin
+} 
+
 pgsql() {
 	pkgdesc="Freeswitch PostgreSQL Module"
 	install=
@@ -251,5 +259,5 @@ f043341ce03a16f0c39631b66666b210283c08f462cb03db327d10de38c285985ef5f8505ccad941
 50362d069174aeeaf7d8cc993d32c319f110e6776c1c94b4fd6f3f255bd82e9155f9cbca93cacd7c8fee4107d7a9c40327466b2ada49272e3064cd0345b53ab3  0001-add-asssembler-to-configure-ac.patch
 4ceb48f64d2bc26a02cc0846276506241bfd30c156422b0a1d608fd172c099feb5c121a763652e9a45046dcdd0ba0eb71eab240e0c6ce2ad63ff781719e135a4  getlib.patch
 81afddd92c100d266d5ad1ff8b919a3a91fcca714b9d10a466b98bdcffd359d8c21c5a1c81df70811f44018216743af554b22f5e327a5743c046c7b79fb65767  modules.conf
-a585f6411185a26206137a1ad97a06fd6c73e80c5439e9be45eabfa70e7a83120169ba882971fcd328436c8e0242cbd664170b80754ea2846021689baf1f1595  kazoo-freeswitch.confd
-643d0a2e43f5d3bf3b99fcb6f6422302cb4b74a95eccf844eafb100b15aa9856b4ff41f112d6637255c2e9e2bec9fedc9a9215dfff214dfb83b52eae16b71dca  kazoo-freeswitch.initd"
+a585f6411185a26206137a1ad97a06fd6c73e80c5439e9be45eabfa70e7a83120169ba882971fcd328436c8e0242cbd664170b80754ea2846021689baf1f1595  2600hz-freeswitch.confd
+643d0a2e43f5d3bf3b99fcb6f6422302cb4b74a95eccf844eafb100b15aa9856b4ff41f112d6637255c2e9e2bec9fedc9a9215dfff214dfb83b52eae16b71dca  2600hz-freeswitch.initd"
